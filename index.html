@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>七大脈輪專屬小語</title>
+    <style>
+        body { 
+            background-color: #Fdfbf7; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            padding-top: 50px;
+            min-height: 100vh;
+            font-family: 'Helvetica Neue', Arial, sans-serif; 
+            margin: 0; 
+            transition: background-color 0.8s ease; /* 讓背景顏色漸變，看起來更柔和 */
+        }
+        .stats {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            background: rgba(255,255,255,0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .card { 
+            background: white; 
+            border-radius: 20px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            padding: 40px 30px; 
+            width: 85%; 
+            max-width: 400px; 
+            text-align: center; 
+        }
+        .quote { 
+            font-size: 1.2rem; 
+            color: #333; 
+            line-height: 1.8; 
+            margin-bottom: 30px; 
+            min-height: 80px; 
+            font-weight: bold;
+        }
+        .btn-group {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .action-btn { 
+            flex: 1;
+            background-color: #f0f0f0; 
+            border: none; 
+            padding: 10px 0; 
+            border-radius: 10px; 
+            color: #555; 
+            font-size: 0.9rem; 
+            cursor: pointer; 
+            transition: 0.3s; 
+        }
+        .action-btn:hover { background-color: #ddd; }
+        .advice-box {
+            background-color: #f9f9f9;
+            border-left: 4px solid #ccc;
+            padding: 15px;
+            text-align: left;
+            font-size: 0.95rem;
+            color: #555;
+            display: none; /* 一開始先隱藏 */
+            border-radius: 0 10px 10px 0;
+            line-height: 1.6;
+        }
+        .notice { color: #d9534f; font-size: 0.85rem; margin-top: 15px; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- 閱讀統計 -->
+    <div class="stats" id="stats-display">你已經收集了 0 張心情小語</div>
+
+    <div class="card" id="main-card">
+        <!-- 抽到的文字 -->
+        <div class="quote" id="quote-text">點擊下方按鈕，抽取今天的專屬小語...</div>
+        
+        <!-- 三個情境按鈕 (抽卡後才會顯示內容) -->
+        <div class="btn-group">
+            <button class="action-btn" onclick="showAdvice('work')">💼 工作</button>
+            <button class="action-btn" onclick="showAdvice('relationship')">❤️ 關係</button>
+            <button class="action-btn" onclick="showAdvice('growth')">🌱 個人成長</button>
+        </div>
+
+        <!-- 顯示建議的區塊 -->
+        <div class="advice-box" id="advice-box"></div>
+        
+        <p class="notice" id="limit-notice">今天已經抽過囉！請明天再來，讓心情沉澱一下吧。</p>
+        
+        <!-- 模擬從悠遊卡感應進來的按鈕 -->
+        <button class="action-btn" style="width:100%; margin-top:10px; background-color:#333; color:white;" onclick="tryDrawCard()" id="draw-btn">NFC 感應抽卡</button>
+    </div>
+
+    <script>
+        /* 【資料庫結構進化版】
+           這裡模擬了未來的「後台」。每張卡片現在包含了：
+           句子(text)、脈輪背景色(color)、三個面向的建議(advice) */
+        const cards =[
+            {
+                text: "把焦點放回自己身上，感受當下的呼吸，你是安全的。",
+                color: "#ffcccc", // 海底輪 (紅色系-代表安全感)
+                advice: {
+                    work: "今天在工作上請專注於眼前的小任務，不要去焦慮還沒發生的未來。一步一步來就很棒了。",
+                    relationship: "在關係中，請先照顧好自己的情緒。當你感覺安穩，你給出的愛才會是輕鬆的。",
+                    growth: "試著在睡前花5分鐘靜心感受身體的重量，紮根大地的感覺能幫助你找回力量。"
+                }
+            },
+            {
+                text: "允許自己有低落的時候，因為那是為了積蓄再次前進的能量。",
+                color: "#ffe0b2", // 臍輪 (橘色系-代表情緒與創造力)
+                advice: {
+                    work: "如果今天感覺缺乏靈感或動力，別勉強自己。做些例行性的庶務，讓大腦休息一下。",
+                    relationship: "向信任的人坦誠你的脆弱吧。真實的表達不會推開別人，反而會拉近心的距離。",
+                    growth: "去畫畫、唱歌或寫日記，用非理性的方式釋放情緒，你的創造力正在重整。"
+                }
+            },
+            {
+                text: "你的存在本身，就是一份美好的禮物。",
+                color: "#e8f5e9", // 心輪 (綠色系-代表愛與接納)
+                advice: {
+                    work: "今天試著對同事表達一個小小的感謝，這份善意會以美好的方式回到你身上。",
+                    relationship: "放下對他人的過度期待，試著去欣賞對方原本的樣子，也這樣對待自己。",
+                    growth: "對著鏡子裡的自己說一聲謝謝。無條件地愛自己，是你一生中最重要的課題。"
+                }
+            }
+        ];
+
+        let currentCard = null; // 紀錄當前抽到的卡片
+
+        /* 網頁載入時，檢查統計與日期 */
+        window.onload = function() {
+            // 從本地記憶體讀取「總閱讀次數」
+            let readCount = localStorage.getItem('rainbowReads') || 0;
+            document.getElementById('stats-display').innerText = `你已經收集了 ${readCount} 張心情小語`;
+        };
+
+        function tryDrawCard() {
+            // 取得今天的日期 (格式：2023-10-25)
+            const today = new Date().toISOString().split('T')[0];
+            const lastDrawDate = localStorage.getItem('lastDrawDate');
+
+            // 檢查今天是否已經抽過
+            if (lastDrawDate === today) {
+                document.getElementById('limit-notice').style.display = 'block';
+                return; // 停止執行，不給抽
+            }
+
+            // 如果沒抽過，開始抽卡
+            drawCard();
+
+            // 紀錄今天已經抽過了
+            localStorage.setItem('lastDrawDate', today);
+            
+            // 更新總閱讀次數
+            let readCount = parseInt(localStorage.getItem('rainbowReads') || 0) + 1;
+            localStorage.setItem('rainbowReads', readCount);
+            document.getElementById('stats-display').innerText = `你已經收集了 ${readCount} 張心情小語`;
+            
+            // 隱藏抽卡按鈕
+            document.getElementById('draw-btn').style.display = 'none';
+        }
+
+        function drawCard() {
+            const randomIndex = Math.floor(Math.random() * cards.length);
+            currentCard = cards[randomIndex];
+            
+            document.getElementById('quote-text').innerText = currentCard.text;
+            // 改變整個網頁的背景顏色（對應脈輪）
+            document.body.style.backgroundColor = currentCard.color;
+            // 隱藏之前的建議
+            document.getElementById('advice-box').style.display = 'none';
+        }
+
+        function showAdvice(type) {
+            if (!currentCard) {
+                alert("請先抽卡喔！");
+                return;
+            }
+            const adviceBox = document.getElementById('advice-box');
+            adviceBox.style.display = 'block';
+            
+            // 根據按下的按鈕，顯示對應的建議並改變邊框顏色
+            if (type === 'work') {
+                adviceBox.innerText = "💼 工作建議：\n" + currentCard.advice.work;
+                adviceBox.style.borderLeftColor = "#5bc0de";
+            } else if (type === 'relationship') {
+                adviceBox.innerText = "❤️ 關係建議：\n" + currentCard.advice.relationship;
+                adviceBox.style.borderLeftColor = "#d9534f";
+            } else if (type === 'growth') {
+                adviceBox.innerText = "🌱 成長建議：\n" + currentCard.advice.growth;
+                adviceBox.style.borderLeftColor = "#5cb85c";
+            }
+        }
+    </script>
+
+</body>
+</html>
